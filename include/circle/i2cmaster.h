@@ -2,7 +2,7 @@
 /// \file i2cmaster.h
 //
 // Circle - A C++ bare metal environment for Raspberry Pi
-// Copyright (C) 2014-2020  R. Stange <rsta2@o2online.de>
+// Copyright (C) 2014-2023  R. Stange <rsta2@o2online.de>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -28,16 +28,16 @@
 /// \brief Driver for I2C master devices
 ///
 /// \details GPIO pin mapping
-/// nDevice   | nConfig 0     | nConfig 1     | Boards
-/// :-------: | :-----------: | :-----------: | :-----
-/// ^         | SDA    SCL    | SDA    SCL    | ^
-/// 0         | GPIO0  GPIO1  |               | Rev. 1
-/// 1         | GPIO2  GPIO3  |               | All other
-/// 2         |               |               | None
-/// 3         | GPIO2  GPIO3  | GPIO4  GPIO5  | Raspberry Pi 4 only
-/// 4         | GPIO6  GPIO7  | GPIO8  GPIO9  | Raspberry Pi 4 only
-/// 5         | GPIO10 GPIO11 | GPIO12 GPIO13 | Raspberry Pi 4 only
-/// 6         | GPIO22 GPIO23 |               | Raspberry Pi 4 only
+/// nDevice   | nConfig 0     | nConfig 1     | nConfig 2     | Boards
+/// :-------: | :-----------: | :-----------: | :-----------: | :-----
+/// ^         | SDA    SCL    | SDA    SCL    | SDA    SCL    | ^
+/// 0         | GPIO0  GPIO1  | GPIO28 GPIO29 | GPIO44 GPIO45 | Rev. 1, other
+/// 1         | GPIO2  GPIO3  |               |               | All other
+/// 2         |               |               |               | None
+/// 3         | GPIO2  GPIO3  | GPIO4  GPIO5  |               | Raspberry Pi 4 only
+/// 4         | GPIO6  GPIO7  | GPIO8  GPIO9  |               | Raspberry Pi 4 only
+/// 5         | GPIO10 GPIO11 | GPIO12 GPIO13 |               | Raspberry Pi 4 only
+/// 6         | GPIO22 GPIO23 |               |               | Raspberry Pi 4 only
 
 // returned by Read/Write as negative value
 #define I2C_MASTER_INALID_PARM	1	///< Invalid parameter
@@ -74,6 +74,17 @@ public:
 	/// \return Number of written bytes or < 0 on failure
 	int Write (u8 ucAddress, const void *pBuffer, unsigned nCount);
 
+	/// \brief Consecutive write and read operation with repeated start
+	/// \param ucAddress    I2C slave address of target device
+	/// \param pWriteBuffer Write data for will be taken from here
+	/// \param nWriteCount  Number of bytes to be written (max. 16)
+	/// \param pReadBuffer  Read data will be stored here
+	/// \param nReadCount   Number of bytes to be read
+	/// \return Number of read bytes or < 0 on failure
+	int WriteReadRepeatedStart (u8 ucAddress,
+				    const void *pWriteBuffer, unsigned nWriteCount,
+				    void *pReadBuffer, unsigned nReadCount);
+
 private:
 	unsigned m_nDevice;
 	uintptr  m_nBaseAddress;
@@ -85,6 +96,7 @@ private:
 	CGPIOPin m_SCL;
 
 	unsigned m_nCoreClockRate;
+	unsigned m_nClockSpeed;
 
 	CSpinLock m_SpinLock;
 };
