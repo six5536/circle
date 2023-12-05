@@ -1,9 +1,9 @@
 //
-// usbserialcp2102.h
+// usbcontroller.h
 //
 // Circle - A C++ bare metal environment for Raspberry Pi
-// Copyright (C) 2020  H. Kocevar <hinxx@protonmail.com>
-// 
+// Copyright (C) 2023  R. Stange <rsta2@o2online.de>
+//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -17,25 +17,23 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
-#ifndef _circle_usb_usbserialcp2102_h
-#define _circle_usb_usbserialcp2102_h
+#ifndef _circle_usb_usbcontroller_h
+#define _circle_usb_usbcontroller_h
 
-#include <circle/usb/usbserial.h>
-#include <circle/usb/usbdevicefactory.h>
 #include <circle/types.h>
 
-class CUSBSerialCP2102Device : public CUSBSerialDevice
+class CUSBController	/// Generic USB (host or gadget) controller
 {
 public:
-	CUSBSerialCP2102Device (CUSBFunction *pFunction);
-	~CUSBSerialCP2102Device (void);
+	/// \brief Initialize controller
+	/// \param bScanDevices Immediately scan for connected devices?
+	/// \return Operation successful?
+	virtual boolean Initialize (boolean bScanDevices = TRUE) = 0;
 
-	boolean Configure (void);
-	boolean SetBaudRate (unsigned nBaudRate);
-	boolean SetLineProperties (TUSBSerialDataBits nDataBits,
-				   TUSBSerialParity nParity, TUSBSerialStopBits nStopBits);
-
-	static const TUSBDeviceID *GetDeviceIDTable (void);
+	/// \brief Update info about connected devices
+	/// \return TRUE if information has been modified
+	/// \note First call always returns TRUE.
+	virtual boolean UpdatePlugAndPlay (void) = 0;
 };
 
 #endif
