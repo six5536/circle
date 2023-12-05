@@ -2,7 +2,7 @@
 // usbdevicefactory.cpp
 //
 // Circle - A C++ bare metal environment for Raspberry Pi
-// Copyright (C) 2014-2022  R. Stange <rsta2@o2online.de>
+// Copyright (C) 2014-2023  R. Stange <rsta2@o2online.de>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -40,13 +40,13 @@
 #include <circle/usb/smsc951x.h>
 #include <circle/usb/lan7800.h>
 #include <circle/usb/usbbluetooth.h>
-#include <circle/usb/usbmidi.h>
+#include <circle/usb/usbmidihost.h>
 #include <circle/usb/usbaudiocontrol.h>
 #include <circle/usb/usbaudiostreaming.h>
 #include <circle/usb/usbcdcethernet.h>
 #include <circle/usb/usbserialcdc.h>
 #include <circle/usb/usbserialch341.h>
-#include <circle/usb/usbserialcp2102.h>
+#include <circle/usb/usbserialcp210x.h>
 #include <circle/usb/usbserialpl2303.h>
 #include <circle/usb/usbserialft231x.h>
 #include <circle/usb/usbtouchscreen.h>
@@ -152,7 +152,7 @@ CUSBFunction *CUSBDeviceFactory::GetDevice (CUSBFunction *pParent, CString *pNam
 	else if (   pName->Compare ("int1-3-0") == 0
 		 || pName->Compare ("ven582-12a") == 0)		// Roland UM-ONE MIDI interface
 	{
-		pResult = new CUSBMIDIDevice (pParent);
+		pResult = new CUSBMIDIHostDevice (pParent);
 	}
 #if RASPPI >= 4
 	else if (   pName->Compare ("int1-1-0") == 0
@@ -179,9 +179,9 @@ CUSBFunction *CUSBDeviceFactory::GetDevice (CUSBFunction *pParent, CString *pNam
 	{
 		pResult = new CUSBSerialCH341Device (pParent);
 	}
-	else if (FindDeviceID (pName, CUSBSerialCP2102Device::GetDeviceIDTable ()))
+	else if (FindDeviceID (pName, CUSBSerialCP210xDevice::GetDeviceIDTable ()))
 	{
-		pResult = new CUSBSerialCP2102Device (pParent);
+		pResult = new CUSBSerialCP210xDevice (pParent);
 	}
 	else if (FindDeviceID (pName, CUSBSerialPL2303Device::GetDeviceIDTable ()))
 	{

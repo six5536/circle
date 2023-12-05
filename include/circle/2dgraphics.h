@@ -5,7 +5,7 @@
 //	Copyright (C) 2021  Stephane Damo
 //
 // Circle - A C++ bare metal environment for Raspberry Pi
-// Copyright (C) 2014-2021  R. Stange <rsta2@o2online.de>
+// Copyright (C) 2014-2023  R. Stange <rsta2@o2online.de>
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,10 +24,19 @@
 #define _circle_2dgraphics_h
 
 #include <circle/screen.h>
+#include <circle/chargenerator.h>
 
 
 class C2DGraphics /// Software graphics library with VSync and hardware-accelerated double buffering
 {
+public:
+	enum TTextAlign
+	{
+		AlignLeft,
+		AlignRight,
+		AlignCenter
+	};
+
 public:
 	/// \param nWidth   Screen width in pixels (0 to detect)
 	/// \param nHeight  Screen height in pixels (0 to detect)
@@ -39,6 +48,14 @@ public:
 
 	/// \return Operation successful?
 	boolean Initialize (void);
+
+	/// \param nWidth  New screen width in pixels
+	/// \param nHeight New screen height in pixels
+	/// \return Operation successful?
+	/// \note When FALSE is returned, the width and/or height are not supported.\n
+	///	  The object is in an uninitialized state then and must not be used,\n
+	///	  but Resize() can be called again with other parameters.
+	boolean Resize (unsigned nWidth, unsigned nHeight);
 
 	/// \return Screen width in pixels
 	unsigned GetWidth () const;
@@ -134,6 +151,16 @@ public:
 	/// \param Color Rectangle color
 	void DrawPixel (unsigned nX, unsigned nY, TScreenColor Color);
 
+	/// \brief Draws a horizontal ISO8859-1 text string
+	/// \param nX Text X coordinate
+	/// \param nY Text Y coordinate
+	/// \param Color Text color
+	/// \param pText 0-terminated C-string
+	/// \param Align Horizontal text alignment
+	/// \note Uses the 8x16 system font
+	/// \note Background is transparent
+	void DrawText (unsigned nX, unsigned nY, TScreenColor Color, const char *pText, TTextAlign Align = AlignLeft);
+
 	/// \brief Gets raw access to the drawing buffer
 	/// \return Pointer to the buffer
 	TScreenColor *GetBuffer ();
@@ -151,6 +178,8 @@ private:
 	TScreenColor *m_Buffer;
 	boolean m_bVSync;
 	boolean m_bBufferSwapped;
+
+	CCharGenerator m_Font;
 };
 
 #endif
