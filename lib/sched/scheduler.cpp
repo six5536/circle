@@ -34,7 +34,12 @@ CScheduler::CScheduler (void)
 	m_nCurrent (0),
 	m_pTaskSwitchHandler (0),
 	m_pTaskTerminationHandler (0),
-	m_iSuspendNewTasks (0)
+	m_iSuspendNewTasks (0),
+#ifdef SCHEDULER_IN_FIQ	
+	m_SpinLock (FIQ_LEVEL)
+#else
+	m_SpinLock ()
+#endif	
 {
 	assert (s_pThis == 0);
 	s_pThis = this;
