@@ -2,7 +2,7 @@
 // sysinit.cpp
 //
 // Circle - A C++ bare metal environment for Raspberry Pi
-// Copyright (C) 2014-2021  R. Stange <rsta2@o2online.de>
+// Copyright (C) 2014-2023  R. Stange <rsta2@o2online.de>
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -27,6 +27,7 @@
 #include <circle/qemu.h>
 #include <circle/synchronize.h>
 #include <circle/sysconfig.h>
+#include <circle/memorymap.h>
 #include <circle/version.h>
 #include <circle/string.h>
 #include <circle/macros.h>
@@ -209,6 +210,13 @@ void sysinit (void)
 	extern unsigned char _end;
 	memset (&__bss_start, 0, &_end - &__bss_start);
 
+	// halt, if KERNEL_MAX_SIZE is not properly set
+	// cannot inform the user here
+	if (MEM_KERNEL_END < reinterpret_cast<uintptr> (&_end))
+	{
+		halt ();
+	}
+
 	CMachineInfo MachineInfo;
 
 	CMemorySystem Memory;
@@ -243,8 +251,8 @@ void sysinit (void)
 		(**pFunc) ();
 	}
 
-	extern int main (void);
-	if (main () == EXIT_REBOOT)
+	extern int MAINPROC (void);
+	if (MAINPROC () == EXIT_REBOOT)
 	{
 		if (IsChainBootEnabled ())
 		{

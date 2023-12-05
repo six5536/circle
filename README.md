@@ -4,14 +4,31 @@ Circle
 Overview
 --------
 
-Circle is a C++ bare metal programming environment for the Raspberry Pi. It should be usable on all existing models (tested on model A+, B, B+, on Raspberry Pi 2, 3, 4, 400 and on Raspberry Pi Zero), except on the Raspberry Pi Pico, which is not supported. Circle provides several ready-tested [C++ classes](doc/classes.txt) and [add-on libraries](addon/README), which can be used to control different hardware features of the Raspberry Pi. Together with Circle there are delivered several [sample programs](sample/README), which demonstrate the use of its classes. Circle can be used to create 32-bit or 64-bit bare metal applications.
+Circle is a C++ bare metal programming environment for the Raspberry Pi. It should be usable on all existing models (tested on model A+, B, B+, on Raspberry Pi 2, 3, 4, 400 and on Raspberry Pi Zero), except on the Raspberry Pi Pico, which is not supported. The Raspberry Pi 5 is also not supported yet. Circle provides several ready-tested [C++ classes](doc/classes.txt) and [add-on libraries](addon/README), which can be used to control different hardware features of the Raspberry Pi. Together with Circle there are delivered several [sample programs](sample/README), which demonstrate the use of its classes. Circle can be used to create 32-bit or 64-bit bare metal applications.
 
 Circle includes bigger (optional) third-party C-libraries for specific purposes in addon/ now. This is the reason why GitHub rates the project as a C-language-project. The main Circle libraries are written in C++ using classes instead. That's why it is called a C++ programming environment.
 
-Release 45.1
+Release 45.3.1
+--------------
+
+This is a hotfix release. It fixes the release of guard structures, which are used to protect static objects, which are defined inside of a function. This problem did occur only, when the system option `ARM_ALLOW_MULTI_CORE` was defined.
+
+Release 45.3
 ------------
 
-This hotfix release fixes the HDMI sound driver (without VCHIQ), which did not work any more on the Raspberry Pi 4 with the recommended firmware. Furthermore is enables the relative path support in the FatFs library.
+This release comes with initial **USB gadget (aka device, peripheral) mode support**, which is used to implement an **USB MIDI (v1.0) gadget**. This allows to connect the Raspberry Pi models (3)A(+), Zero (2) (W) and 4B directly to a host computer (e.g. for running a sequencer program). Before the Raspberry Pi was always the USB host with Circle and required an additional USB MIDI serial adapter for that purpose.
+
+The sample [29-miniorgan](sample/29-miniorgan/) is prepared to work as MIDI gadget. Please see the [README](sample/29-miniorgan/README) for information about the required configuration. Beside the define `USB_GADGET_MODE`, which enables the gadget mode in the sample, you have to define your own USB vendor ID as system option `USB_GADGET_VENDOR_ID` in *Config.mk* or *include/circle/sysconfig.h*. Please note that Circle does not support OTG protocols, so the USB controller always works in host or gadget mode and the connected peer must work in the opposite mode.
+
+Adapting your own application to be used as an USB MIDI gadget should not be difficult. You have to create an object of the class `CUSBMIDIGadget` (see *include/circle/usb/gadget/usbmidigadget.h*) instead of `CUSBHCIDevice` and call `Initialize()` and `UpdatePlugAndPlay()` on it as before in host mode. You have to add the library *lib/usb/gadget/libusbgadget.a* to your `LIBS` variable. The USB MIDI API device `umidi1` has the same interface as in host mode. There is a shared base class `CUSBController` for `CUSBHCIDevice` and `CUSBMIDIGadget`, so it is easy to implement host and gadget mode in one application and to select it on user configuration.
+
+Further improvements:
+
+* The **LVGL submodule** has been updated to version 8.3.10.
+* **Application-defined kernel options** can be used now in the file *cmdline.txt*. The methods `GetAppOptionString()` and `GetAppOptionDecimal()` have been added to the class `CKernelOptions` for this purpose.
+* **Resizing the screen** is supported in the classes `CScreenDevice`, `C2DGraphics` and `CMouseDevice`.
+* **TV service support** has been added to [addon/vc4/interface](addon/vc4/interface/). It works in 32-bit mode only.
+* The class `CI2CMaster` supports **I2C operations with repeated start** now.
 
 The 45th Step
 -------------
@@ -105,6 +122,7 @@ Circle supports the following features:
 |                       | Audio class MIDI input support                      |
 |                       | Touchscreen driver (digitizer mode)                 |
 |                       | Printer driver                                      |
+|                       | MIDI gadget driver (experimental)                   |
 |                       |                                                     |
 | File systems          | Internal FAT driver (limited function)              |
 |                       | FatFs driver (full function, by ChaN)               |
@@ -121,15 +139,13 @@ Circle supports the following features:
 |                       | 2D graphics class in base library                   |
 |                       |                                                     |
 | Not supported         | Bluetooth                                           |
-|                       | Camera                                              |
-|                       | USB device (gadget) mode                            |
 
 Building
 --------
 
 > For building 64-bit applications (AArch64) see the next section.
 
-This describes building on PC Linux. See the file [doc/windows-build.txt](doc/windows-build.txt) for information about building on Windows. If building for the Raspberry Pi 1 you need a [toolchain](http://elinux.org/Rpi_Software#ARM) for the ARM1176JZF core (with EABI support). For Raspberry Pi 2/3/4 you need a toolchain with Cortex-A7/-A53/-A72 support. A toolchain, which works for all of these, can be downloaded [here](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads). Circle has been tested with the version *11.3.Rel1* (arm-gnu-toolchain-11.3.rel1-x86_64-arm-none-eabi.tar.xz) from this website.
+This describes building on PC Linux. See the file [doc/windows-build.txt](doc/windows-build.txt) for information about building on Windows. If building for the Raspberry Pi 1 you need a [toolchain](http://elinux.org/Rpi_Software#ARM) for the ARM1176JZF core (with EABI support). For Raspberry Pi 2/3/4 you need a toolchain with Cortex-A7/-A53/-A72 support. A toolchain, which works for all of these, can be downloaded [here](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads). Circle has been tested with the version *12.2.Rel1* (arm-gnu-toolchain-12.2.rel1-x86_64-arm-none-eabi.tar.xz) from this website.
 
 First edit the file *Rules.mk* and set the Raspberry Pi version (*RASPPI*, 1, 2, 3 or 4) and the *PREFIX* of your toolchain commands. Alternatively you can create a *Config.mk* file (which is ignored by git) and set the Raspberry Pi version and the *PREFIX* variable to the prefix of your compiler like this (don't forget the dash at the end):
 
@@ -169,7 +185,7 @@ AArch64
 
 Circle supports building 64-bit applications, which can be run on the Raspberry Pi 3 or 4. There are also Raspberry Pi 2 versions and the Raspberry Pi Zero 2, which are based on the BCM2837 SoC. These Raspberry Pi versions can be used too (with `RASPPI = 3`).
 
-The recommended toolchain to build 64-bit applications with Circle can be downloaded [here](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads). Circle has been tested with the version *11.3.Rel1* (arm-gnu-toolchain-11.3.rel1-x86_64-aarch64-none-elf.tar.xz) from this website.
+The recommended toolchain to build 64-bit applications with Circle can be downloaded [here](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads). Circle has been tested with the version *12.2.Rel1* (arm-gnu-toolchain-12.2.rel1-x86_64-aarch64-none-elf.tar.xz) from this website.
 
 There are distro-provided toolchains on certain Linux platforms (e.g. *g++-aarch64-linux-gnu* on Ubuntu or *gcc-c++-aarch64-linux-gnu* on Fedora), which may work with Circle and can be a quick way to use it, but you have to test this by yourself. If you encounter problems (e.g. no reaction at all, link failure with external library) using a distro-provided toolchain, please try the recommended toolchain (see above) first, before reporting an issue.
 
@@ -195,11 +211,11 @@ By default only the latest sample (with the highest number) is build. The ready 
 Installation
 ------------
 
-Copy the Raspberry Pi firmware (from boot/ directory, do *make* there to get them) files along with the *kernel.img* (from sample/ subdirectory) to a SD(HC) card with FAT file system. Put the SD(HC) card into the Raspberry Pi.
+Copy the Raspberry Pi firmware (from boot/ directory, do *make* there to get them) files along with the *kernel\*.img* (from sample/ subdirectory) to a SD(HC) card with FAT file system.
 
-The *config32.txt* file, provided in the boot/ directory, is needed to enable FIQ use in 32-bit mode on the Raspberry Pi 4 and has to be copied to the SD card in this case (rename it to config.txt). Furthermore the additional file *armstub7-rpi4.bin* is required on the SD card then. Please see [boot/README](boot/README) for information on how to build this file.
+It is now always recommended to copy the file *config32.txt* (for 32-bit mode) or *config64.txt* (for 64-bit mode) from the boot/ directory to the SD(HC) card and to rename it to *config.txt* there. These files are especially required to enable FIQ use on the Raspberry Pi 4. Furthermore the additional file *armstub7-rpi4.bin* (for 32-bit mode) or *armstub8-rpi4.bin* (for 64-bit mode) is required on the SD card then. Please see [boot/README](boot/README) for information on how to build these files.
 
-The *config64.txt* file, provided in the boot/ directory, is needed to enable 64-bit mode and has to be copied to the SD card in this case (rename it to config.txt). FIQ support for AArch64 on the Raspberry Pi 4 requires an additional file *armstub8-rpi4.bin* on the SD card. Please see [boot/README](boot/README) for information on how to build this file.
+Finally put the SD(HC) card into the Raspberry Pi.
 
 Directories
 -----------
@@ -236,6 +252,16 @@ USB library
 * CUSBAudioControlDevice: Driver for USB audio control devices
 * CUSBAudioFunctionTopology: Topology parser for USB audio class devices
 * CUSBAudioStreamingDevice: Low-level driver for USB audio streaming devices
+* CUSBController: Generic USB (host or gadget) controller
+* CUSBMIDIHostDevice: Host driver for USB Audio Class MIDI 1.0 devices (was: CUSBMIDIDevice)
+
+USB gadget library (new)
+
+* CDWUSBGadget: DW USB gadget on Raspberry Pi (3)A(+), Zero (2) (W), 4B
+* CDWUSBGadgetEndpoint: Endpoint of a DW USB gadget
+* CDWUSBGadgetEndpoint0: Endpoint 0 of a DW USB gadget
+* CUSBMIDIGadget: USB MIDI (v1.0) gadget
+* CUSBMIDIGadgetEndpoint: Endpoint of the USB MIDI gadget
 
 Sound library (new)
 

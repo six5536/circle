@@ -2,7 +2,7 @@
 // bcm2835.h
 //
 // Circle - A C++ bare metal environment for Raspberry Pi
-// Copyright (C) 2014-2022  R. Stange <rsta2@o2online.de>
+// Copyright (C) 2014-2023  R. Stange <rsta2@o2online.de>
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -195,6 +195,11 @@
 //
 #define ARM_CM_BASE		(ARM_IO_BASE + 0x101000)
 
+#define ARM_CM_CAM0CTL		(ARM_CM_BASE + 0x40)
+#define ARM_CM_CAM0DIV		(ARM_CM_BASE + 0x44)
+#define ARM_CM_CAM1CTL		(ARM_CM_BASE + 0x48)
+#define ARM_CM_CAM1DIV		(ARM_CM_BASE + 0x4C)
+
 #define ARM_CM_GP0CTL		(ARM_CM_BASE + 0x70)
 #define ARM_CM_GP0DIV		(ARM_CM_BASE + 0x74)
 
@@ -210,6 +215,7 @@
 
 #define ARM_USB_CORE_BASE	ARM_USB_BASE
 #define ARM_USB_HOST_BASE	(ARM_USB_BASE + 0x400)
+#define ARM_USB_DEV_BASE	(ARM_USB_BASE + 0x800)
 #define ARM_USB_POWER		(ARM_USB_BASE + 0xE00)
 
 //
@@ -355,5 +361,16 @@
 #define ARM_PHY_BASE		(ARM_IO_BASE + 0xF00F00)
 #define ARM_RAM_BASE		(ARM_IO_BASE + 0xF01B00)
 #endif
+
+//
+// CSI
+//
+#define ARM_CSI0_BASE		(ARM_IO_BASE + 0x800000)
+#define ARM_CSI0_END		(ARM_CSI0_BASE + 0x7FF)
+#define ARM_CSI0_CLKGATE	(ARM_IO_BASE + 0x802000)	// 4 bytes
+
+#define ARM_CSI1_BASE		(ARM_IO_BASE + 0x801000)
+#define ARM_CSI1_END		(ARM_CSI1_BASE + 0x7FF)
+#define ARM_CSI1_CLKGATE	(ARM_IO_BASE + 0x802004)	// 4 bytes
 
 #endif
