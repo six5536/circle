@@ -5,7 +5,7 @@
 //	Copyright (C) 2021  Stephane Damo
 //
 // Circle - A C++ bare metal environment for Raspberry Pi
-// Copyright (C) 2014-2021  R. Stange <rsta2@o2online.de>
+// Copyright (C) 2014-2023  R. Stange <rsta2@o2online.de>
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@ C2DGraphics::C2DGraphics (unsigned nWidth, unsigned nHeight, boolean bVSync, uns
 	m_pFrameBuffer(0),
 	m_Buffer(0),
 	m_bVSync(bVSync),
-	m_bBufferSwapped(FALSE)
+	m_bBufferSwapped(TRUE)
 {
 
 }
@@ -79,6 +79,20 @@ boolean C2DGraphics::Initialize (void)
 	m_Buffer = m_baseBuffer + m_nWidth * m_nHeight;
 	
 	return TRUE;
+}
+
+boolean C2DGraphics::Resize (unsigned nWidth, unsigned nHeight)
+{
+	delete m_pFrameBuffer;
+	m_pFrameBuffer = 0;
+
+	m_nWidth = nWidth;
+	m_nHeight = nHeight;
+
+	m_Buffer = 0;
+	m_bBufferSwapped = TRUE;
+
+	return Initialize ();
 }
 
 unsigned C2DGraphics::GetWidth () const
@@ -270,7 +284,7 @@ void C2DGraphics::DrawImageRect (unsigned nX, unsigned nY, unsigned nWidth, unsi
 	{
 		for(unsigned j=0; j<nWidth; j++)
 		{
-			m_Buffer[(nY + i) * m_nWidth + j + nX] = PixelBuffer[(nSourceY + i) * m_nWidth + j + nSourceX];
+			m_Buffer[(nY + i) * m_nWidth + j + nX] = PixelBuffer[(nSourceY + i) * nWidth + j + nSourceX];
 		}
 	}
 }
@@ -303,6 +317,41 @@ void C2DGraphics::DrawPixel (unsigned nX, unsigned nY, TScreenColor Color)
 	}
 	
 	m_Buffer[m_nWidth * nY + nX] = Color;
+}
+
+void C2DGraphics::DrawText (unsigned nX, unsigned nY, TScreenColor Color,
+			    const char *pText, TTextAlign Align)
+{
+	unsigned nWidth = strlen (pText) * m_Font.GetCharWidth ();
+	if (Align == AlignRight)
+	{
+		nX -= nWidth;
+	}
+	else if (Align == AlignCenter)
+	{
+		nX -= nWidth / 2;
+	}
+
+	if (   nX > m_nWidth
+	    || nX + nWidth > m_nWidth
+	    || nY + m_Font.GetUnderline () > m_nHeight)
+	{
+		return;
+	}
+
+	for (; *pText != '\0'; pText++, nX += m_Font.GetCharWidth ())
+	{
+		for (unsigned y = 0; y < m_Font.GetUnderline (); y++)
+		{
+			for (unsigned x = 0; x < m_Font.GetCharWidth (); x++)
+			{
+				if (m_Font.GetPixel (*pText, x, y))
+				{
+					m_Buffer[(nY + y) * m_nWidth + x + nX] = Color;
+				}
+			}
+		}
+	}
 }
 
 TScreenColor* C2DGraphics::GetBuffer ()
