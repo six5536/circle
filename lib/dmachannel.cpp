@@ -3,7 +3,7 @@
 //
 // Circle - A C++ bare metal environment for Raspberry Pi
 // Copyright (C) 2014-2021  R. Stange <rsta2@o2online.de>
-// 
+//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -75,7 +75,7 @@ CDMAChannel::CDMAChannel (unsigned nChannel, CInterruptSystem *pInterruptSystem)
 
 	PeripheralExit ();
 }
-	
+
 
 CDMAChannel::~CDMAChannel (void)
 {
@@ -423,6 +423,20 @@ void CDMAChannel::Stop ()
 	PeripheralExit ();
 }
 
+unsigned CDMAChannel::GetTransferLength(void)
+{
+// #if RASPPI >= 4
+// 	if (m_pDMA4Channel != 0)
+// 	{
+// 		return m_pDMA4Channel->GetStatus ();
+// 	}
+// #endif
+
+	assert (m_nChannel < DMA_CHANNELS);
+
+	return read32 (ARM_DMACHAN_TXFR_LEN (m_nChannel));
+}
+
 boolean CDMAChannel::GetStatus (void)
 {
 #if RASPPI >= 4
@@ -474,7 +488,7 @@ void CDMAChannel::InterruptHandler (void)
 	u32 nCS = read32 (ARM_DMACHAN_CS (m_nChannel));
 	assert (nCS & CS_INT);
 	assert (!(nCS & CS_ACTIVE));
-	write32 (ARM_DMACHAN_CS (m_nChannel), CS_INT); 
+	write32 (ARM_DMACHAN_CS (m_nChannel), CS_INT);
 
 	PeripheralExit ();
 
@@ -512,7 +526,7 @@ CDMAChannel::CDMAControlBlock::CDMAControlBlock (unsigned nChannel)
 	m_pControlBlock->nReserved[0] = 0;
 	m_pControlBlock->nReserved[1] = 0;
 }
-	
+
 
 CDMAChannel::CDMAControlBlock::~CDMAControlBlock (void)
 {
@@ -763,7 +777,7 @@ void CDMAChannel::CDMAControlBlock::SetUseDREQForSrc(boolean bUseDREQForSrc)
 		m_pControlBlock->nTransferInformation |= TI_SRC_DREQ;
 	 } else {
 		m_pControlBlock->nTransferInformation &= ~TI_SRC_DREQ;
-	 }  
+	 }
 }
 
 boolean CDMAChannel::CDMAControlBlock::GetUseDREQForDest()

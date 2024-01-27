@@ -3,7 +3,7 @@
 //
 // Circle - A C++ bare metal environment for Raspberry Pi
 // Copyright (C) 2014-2022  R. Stange <rsta2@o2online.de>
-// 
+//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -94,7 +94,7 @@ class CDMAChannel	/// Platform DMA controller support
 				/// \note This method is not supported with DMA_CHANNEL_LITE.
 				void SetupMemCopy2D (void *pDestination, const void *pSource,
 							size_t nBlockLength, unsigned nBlockCount, size_t nBlockStride,
-							unsigned nBurstLength = 0);				
+							unsigned nBurstLength = 0);
 
 				void *GetSourceAddress(boolean bAsBusAddress);
 				void SetSourceAddress(void *pSource);
@@ -128,10 +128,10 @@ class CDMAChannel	/// Platform DMA controller support
 
 				boolean GetDestIncrement(void);
 				void SetDestIncrement(boolean bIncrement);
-				
+
 				boolean GetWaitForWriteResponse(void);
 				void SetWaitForWriteResponse(boolean bWaitForWriteResponse);
-				
+
 				unsigned GetWaitCycles();
 				void SetWaitCycles(unsigned nWaitCycles);
 
@@ -208,6 +208,8 @@ public:
 	boolean Wait (void);
 
 	void Stop (void);
+
+	unsigned GetTransferLength(void);
 
 	/// \brief Get status of the DMA transfer, to be called in the completion routine
 	/// \return Has the transfer been successful?
