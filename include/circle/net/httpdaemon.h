@@ -3,7 +3,7 @@
 //
 // Circle - A C++ bare metal environment for Raspberry Pi
 // Copyright (C) 2015-2021  R. Stange <rsta2@o2online.de>
-// 
+//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -34,7 +34,7 @@ public:
 		     CSocket	   *pSocket	    = 0,	// is 0 for 1st created instance (listener)
 		     unsigned	    nMaxContentSize = 0,	// buffer size for worker
 		     u16	    nPort	    = HTTP_PORT,
-		     unsigned	    nMaxMultipartSize = 0);	// buffer size for multipart form data
+		     unsigned	    nMaxRequestDataSize = 0);	// buffer size for multipart form data
 	~CHTTPDaemon (void);
 
 	void Run (void);
@@ -45,10 +45,11 @@ public:
 	// define this to provide your content
 	virtual THTTPStatus GetContent (const char  *pPath,	// path of the file to be sent
 				        const char  *pParams,	// parameters to GET ("" for none)
-					const char  *pFormData, // form data from POST ("" for none)
+					const char  *pRequestData, // data from POST ("" for none)
 				        u8	    *pBuffer,	// copy your content here
 				        unsigned    *pLength,	// in: buffer size, out: content length
-				        const char **ppContentType) = 0; // set this if not "text/html"
+				        const char **ppContentType,
+								THTTPRequestMethod RequestMethod) = 0; // in: content-type, out: set this to output content-type
 
 	// overwrite this to implement your own access logging
 	virtual void WriteAccessLog (const CIPAddress	&rRemoteIP,
@@ -80,8 +81,8 @@ private:
 	CSocket	      *m_pSocket;
 	unsigned       m_nMaxContentSize;
 	u16	       m_nPort;
-	unsigned       m_nMaxMultipartSize;
-	
+	unsigned       m_nMaxRequestDataSize;
+
 	u8 *m_pContentBuffer;
 
 	// from request
@@ -90,6 +91,7 @@ private:
 	char m_RequestURI[HTTP_MAX_URI+1];		// the URI without host
 	char m_RequestPath[HTTP_MAX_PATH+1];		// the path without parameters
 	char m_RequestParams[HTTP_MAX_PARAMS+1];	// the parameters from URI
+	char m_ContentType[HTTP_MAX_CONTENT_TYPE+1];	// the content type from header
 
 	boolean m_bRequestFormDataAvailable;		// form data is available
 	unsigned m_nRequestContentLength;		// length of form data from POST request
@@ -100,6 +102,9 @@ private:
 	unsigned m_nMultipartContentLength;		// total length of multipart form data
 	char *m_pMultipartBuffer;			// pointer to allocated multipart buffer
 	char *m_pMultipartPointer;			// pointer into allocated multipart buffer
+
+	boolean m_bRawRequestDataAvailable; // raw request data available
+	char *m_pRawRequestData;	// raw request data
 
 	static unsigned s_nInstanceCount;
 };

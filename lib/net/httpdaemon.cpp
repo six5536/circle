@@ -5,7 +5,7 @@
 //
 // Circle - A C++ bare metal environment for Raspberry Pi
 // Copyright (C) 2015-2021  R. Stange <rsta2@o2online.de>
-// 
+//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -40,13 +40,13 @@ static const char FromHTTPDaemon[] = "httpd";
 unsigned CHTTPDaemon::s_nInstanceCount = 0;
 
 CHTTPDaemon::CHTTPDaemon (CNetSubSystem *pNetSubSystem, CSocket *pSocket,
-			  unsigned nMaxContentSize, u16 nPort, unsigned nMaxMultipartSize)
+			  unsigned nMaxContentSize, u16 nPort, unsigned nMaxRequestDataSize)
 :	CTask (HTTPD_STACK_SIZE),
 	m_pNetSubSystem (pNetSubSystem),
 	m_pSocket (pSocket),
 	m_nMaxContentSize (nMaxContentSize),
 	m_nPort (nPort),
-	m_nMaxMultipartSize (nMaxMultipartSize),
+	m_nMaxRequestDataSize (nMaxRequestDataSize),
 	m_pContentBuffer (0)
 {
 	s_nInstanceCount++;
@@ -183,7 +183,7 @@ void CHTTPDaemon::Worker (void)
 
 	// process HTTP request
 	unsigned nContentLength = m_nMaxContentSize;
-	const char *pContentType = "text/html";
+	const char *pContentType = m_ContentType;
 
 	const char *pStatusMsg = "OK";
 
@@ -191,13 +191,17 @@ void CHTTPDaemon::Worker (void)
 	{
 		// get content
 		assert (m_pContentBuffer != 0);
-		Status = GetContent (m_RequestPath, m_RequestParams, m_RequestFormData,
-				     m_pContentBuffer, &nContentLength, &pContentType);
+		char * pData = m_bRawRequestDataAvailable ? m_pRawRequestData : m_RequestFormData;
+		Status = GetContent (m_RequestPath, m_RequestParams, pData,
+				     m_pContentBuffer, &nContentLength, &pContentType, m_RequestMethod);
 		assert (nContentLength <= m_nMaxContentSize);
 		assert (pContentType != 0);
 
 		delete [] m_pMultipartBuffer;
 		m_pMultipartBuffer = 0;
+
+		delete [] m_pRawRequestData;
+		m_pRawRequestData = 0;
 	}
 
 	if (Status != HTTPOK)
@@ -299,6 +303,8 @@ THTTPStatus CHTTPDaemon::ParseRequest (void)
 	m_MultipartBoundary[0] = '\0';
 	m_nMultipartContentLength = 0;
 	m_pMultipartBuffer = 0;
+	m_bRawRequestDataAvailable = FALSE;
+	m_pRawRequestData = 0;
 
 	char Buffer[FRAME_BUFFER_SIZE];
 	char Line[HTTP_MAX_REQUEST_LINE+1];
@@ -351,7 +357,7 @@ THTTPStatus CHTTPDaemon::ParseRequest (void)
 							m_nMultipartContentLength = m_nRequestContentLength;
 							m_nRequestContentLength = 0;
 
-							if (m_nMultipartContentLength <= m_nMaxMultipartSize)
+							if (m_nMultipartContentLength <= m_nMaxRequestDataSize)
 							{
 								assert (m_pMultipartBuffer == 0);
 								m_pMultipartBuffer = new char[m_nMultipartContentLength];
@@ -372,6 +378,30 @@ THTTPStatus CHTTPDaemon::ParseRequest (void)
 								nState = 3;
 							}
 						}
+						else if (   m_bRawRequestDataAvailable
+						    && m_nRequestContentLength > 0) {
+							// Raw request data
+							if (m_nRequestContentLength <= m_nMaxRequestDataSize)
+							{
+								assert (m_pRawRequestData == 0);
+								m_pRawRequestData = new char[m_nRequestContentLength];
+								if (m_pRawRequestData == 0)
+								{
+									Status = HTTPInternalServerError;
+									nState = 3;
+								}
+								else
+								{
+									nChar = 0;
+									nState = 1;
+								}
+							}
+							else
+							{
+								Status = HTTPRequestEntityTooLarge;
+								nState = 3;
+							}
+						}
 						else
 						{
 							nState = 3;
@@ -382,14 +412,14 @@ THTTPStatus CHTTPDaemon::ParseRequest (void)
 						if (nLine++ == 0)	// first line?
 						{
 							if (Status == HTTPOK)
-							{						
+							{
 								Status = ParseMethod (Line);
 							}
 						}
 						else
 						{
 							if (Status == HTTPOK)
-							{						
+							{
 								Status = ParseHeaderField (Line);
 							}
 						}
@@ -413,8 +443,13 @@ THTTPStatus CHTTPDaemon::ParseRequest (void)
 			}
 			else if (nState == 1)
 			{
-				m_RequestFormData[nChar++] = chChar;
-				m_RequestFormData[nChar] = '\0';
+				if (m_bRequestFormDataAvailable) {
+					m_RequestFormData[nChar++] = chChar;
+					m_RequestFormData[nChar] = '\0';
+				} else if (m_bRawRequestDataAvailable) {
+					m_pRawRequestData[nChar++] = chChar;
+					m_pRawRequestData[nChar] = '\0';
+				}
 
 				if (nChar >= m_nRequestContentLength)
 				{
@@ -441,12 +476,12 @@ THTTPStatus CHTTPDaemon::ParseRequest (void)
 
 		return HTTPUnknownError;
 	}
-	
+
 	if (Status != HTTPOK)
 	{
 		return Status;
 	}
-	
+
 	if (nLine == 0)
 	{
 		return HTTPUnknownError;
@@ -527,6 +562,9 @@ THTTPStatus CHTTPDaemon::ParseMethod (char *pLine)
 		return HTTPVersionNotSupported;
 	}
 
+	// Reset the content type to the default
+	strncpy(m_ContentType, "text/html", HTTP_MAX_CONTENT_TYPE);
+
 	return HTTPOK;
 }
 
@@ -548,6 +586,10 @@ THTTPStatus CHTTPDaemon::ParseHeaderField (char *pLine)
 			return HTTPBadRequest;
 		}
 
+		// Set the incoming content type
+		strncpy(m_ContentType, pToken, HTTP_MAX_CONTENT_TYPE);
+		m_ContentType[HTTP_MAX_CONTENT_TYPE] = '\0';
+
 		if (strcmp (pToken, "application/x-www-form-urlencoded") == 0)
 		{
 			m_bRequestFormDataAvailable = TRUE;
@@ -565,6 +607,9 @@ THTTPStatus CHTTPDaemon::ParseHeaderField (char *pLine)
 			m_bMultipartFormDataAvailable = TRUE;
 
 			strcpy (m_MultipartBoundary, pToken);
+		}
+		else {
+			m_bRawRequestDataAvailable = TRUE;
 		}
 	}
 	else if (strcmp (pToken, "Content-Length") == 0)
