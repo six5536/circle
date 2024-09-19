@@ -3,7 +3,7 @@
 //
 // Circle - A C++ bare metal environment for Raspberry Pi
 // Copyright (C) 2015-2016  R. Stange <rsta2@o2online.de>
-// 
+//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -53,10 +53,11 @@ public:
 
 	boolean IsNull (void) const;
 	boolean IsBroadcast (void) const;
+	boolean IsMulticast (void) const;
 	unsigned GetSize (void) const;
 
 	void Format (CString *pString) const;
-	
+
 	boolean OnSameNetwork (const CIPAddress &rAddress2, const u8 *pNetMask) const;
 
 private:

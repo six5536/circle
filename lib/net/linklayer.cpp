@@ -2,8 +2,8 @@
 // linklayer.cpp
 //
 // Circle - A C++ bare metal environment for Raspberry Pi
-// Copyright (C) 2015-2020  R. Stange <rsta2@o2online.de>
-// 
+// Copyright (C) 2015-2024  R. Stange <rsta2@o2online.de>
+//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -94,7 +94,7 @@ void CLinkLayer::Process (void)
 
 		nLength -= sizeof (TEthernetHeader);
 		assert (nLength > 0);
-		
+
 		switch (pHeader->nProtocolType)
 		{
 		case BE (ETH_PROT_IP):
@@ -153,6 +153,17 @@ boolean CLinkLayer::Send (const CIPAddress &rReceiver, const void *pIPPacket, un
 	    || rReceiver == *m_pNetConfig->GetBroadcastAddress ())
 	{
 		MACAddressReceiver.SetBroadcast ();
+	}
+	else if (rReceiver.IsMulticast ())
+	{
+		u8 TempMACAddress[MAC_ADDRESS_SIZE];
+		rReceiver.CopyTo (TempMACAddress + 2);
+
+		TempMACAddress[0] = 0x01;
+		TempMACAddress[1] = 0x00;
+		TempMACAddress[2] = 0x5E;
+
+		MACAddressReceiver.Set (TempMACAddress);
 	}
 	else if (!m_pARPHandler->Resolve (rReceiver, &MACAddressReceiver,
 					  FrameBuffer, nFrameLength))
