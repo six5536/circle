@@ -56,6 +56,8 @@ typedef struct Ether
 	void (*scanbs) (void *arg, uint secs);
 	void (*setevhndlr) (struct Ether *edev, ether_event_handler_t *hndlr, void *context);
 	void (*shutdown) (struct Ether *edev);
+	void (*promiscuous) (struct Ether *edev, int on);
+	void (*multicast) (struct Ether *edev, uchar *addr, int on);
 }
 Ether;
 
