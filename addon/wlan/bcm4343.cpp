@@ -201,6 +201,18 @@ boolean CBcm4343Device::CreateOpenNet (const char *pSSID, int nChannel, bool bHi
 	return Control ("create %s %d %d", pSSID, nChannel, bHidden);
 }
 
+void CBcm4343Device::SetMulticast (const u8 *pIpGroupAddr, boolean bEnable)
+{
+	assert (s_EtherDevice.multicast != 0);
+	(*s_EtherDevice.multicast) (&s_EtherDevice, (uchar *)pIpGroupAddr, bEnable ? 1 : 0);
+}
+
+void CBcm4343Device::SetPromiscuous (boolean bEnable)
+{
+	assert (s_EtherDevice.promiscuous != 0);
+	(*s_EtherDevice.promiscuous) (&s_EtherDevice, bEnable ? 1 : 0);
+}
+
 void CBcm4343Device::DumpStatus (void)
 {
 	char Buffer[200];

@@ -73,6 +73,10 @@ public:
 	/// \return Operation successful?
 	boolean CreateOpenNet (const char *pSSID, int nChannel, bool bHidden);
 
+	void SetMulticast (const u8 *pIpGroupAddr, boolean bEnable);
+
+	void SetPromiscuous (boolean bEnable);
+
 	void DumpStatus (void);
 
 public:

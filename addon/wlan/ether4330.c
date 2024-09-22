@@ -204,6 +204,8 @@ struct Ctlr {
 	uchar	txwindow;
 	uchar	txseq;
 	uchar	rxseq;
+	int	prom;			/* number of promiscuous opens */
+	int	nmaddr;			/* number of known multicast addresses */
 	ether_event_handler_t *evhndlr;
 	void	*evcontext;
 };
@@ -2104,6 +2106,20 @@ lproc(void *a)
 }
 
 static void
+rxmode(Ether *edev, int prom)
+{
+	Ctlr *ctlr = edev->ctlr;
+
+	wlsetint(ctlr, "allmulti", ctlr->nmaddr > 0);
+
+	/* SET_PROMISC */
+	wlcmdint(ctlr, 10, prom);
+
+	wlsetint(ctlr, "arp_ol", !prom);
+	wlsetint(ctlr, "ndoe", !prom);
+}
+
+static void
 wlinit(Ether *edev, Ctlr *ctlr)
 {
 	uchar ea[Eaddrlen];
@@ -2151,7 +2167,8 @@ wlinit(Ether *edev, Ctlr *ctlr)
 	if(0) print("ether4330: %s\n", version);
 	wlsetint(ctlr, "roam_off", 1);
 	wlcmdint(ctlr, 0x14, 1);	/* SET_INFRA 1 */
-	wlcmdint(ctlr, 10, 0);		/* SET_PROMISC */
+	// wlcmdint(ctlr, 10, 0);		/* SET_PROMISC */
+	rxmode(edev, ctlr->prom);
 	//wlcmdint(ctlr, 0x8e, 0);	/* SET_BAND 0 */
 	//wlsetint(ctlr, "wsec", 1);
 	wlcmdint(ctlr, 2, 1);		/* UP */
@@ -2557,6 +2574,26 @@ etherbcmshutdown(Ether*edev)
 	sdioreset();
 }
 
+static void
+etherbcmprom(Ether *edev, int on)
+{
+	rxmode(edev, on);
+}
+
+static void
+etherbcmmulti(Ether *edev, uchar *addr, int on)
+{
+	Ctlr *ctlr;
+
+	ctlr = edev->ctlr;
+
+	// TODO: should keep a list of multicast addresses
+	ctlr->nmaddr = ctlr->nmaddr + (on ? 1 : -1);
+	if (ctlr->nmaddr < 0) ctlr->nmaddr = 0;
+
+	rxmode(edev, ctlr->prom);
+}
+
 
 static int
 etherbcmpnp(Ether* edev)
@@ -2575,6 +2612,8 @@ etherbcmpnp(Ether* edev)
 	edev->scanbs = etherbcmscan;
 	edev->setevhndlr = etherbcmsetevhndlr;
 	edev->shutdown = etherbcmshutdown;
+	edev->promiscuous = etherbcmprom;
+	edev->multicast = etherbcmmulti;
 	edev->arg = edev;
 
 	return 0;
