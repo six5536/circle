@@ -33,8 +33,10 @@ static Ether s_EtherDevice;
 
 CBcm4343Device *CBcm4343Device::s_pThis = 0;
 
-CBcm4343Device::CBcm4343Device (const char *pFirmwarePath)
-:	m_FirmwarePath (pFirmwarePath)
+CBcm4343Device::CBcm4343Device (const char *pFirmwarePath, boolean allmulti, boolean promisc)
+:	m_FirmwarePath (pFirmwarePath),
+  m_allmulti (allmulti),
+	m_promisc (promisc)
 {
 	s_pThis = this;
 }
@@ -71,6 +73,9 @@ boolean CBcm4343Device::Initialize (void)
 	(*s_EtherDevice.attach) (&s_EtherDevice);
 
 	m_MACAddress.Set (s_EtherDevice.ea);
+
+	SetMulticast (0, m_allmulti);
+	SetPromiscuous (m_promisc);
 
 	AddNetDevice ();
 

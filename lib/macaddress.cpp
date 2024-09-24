@@ -3,7 +3,7 @@
 //
 // Circle - A C++ bare metal environment for Raspberry Pi
 // Copyright (C) 2014-2019  R. Stange <rsta2@o2online.de>
-// 
+//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -87,6 +87,24 @@ boolean CMACAddress::IsBroadcast (void) const
 
 	return TRUE;
 }
+
+boolean CMACAddress::IsMulticast (void) const
+{
+	assert (m_bValid);
+
+	static const u8 MulticastMask[] = { 0x01, 0x00, 0x5E };
+
+	for (unsigned i = 0; i < 3; i++)
+	{
+		if (m_Address[i] != MulticastMask[i])
+		{
+			return FALSE;
+		}
+	}
+
+	return TRUE;
+}
+
 
 unsigned CMACAddress::GetSize (void) const
 {

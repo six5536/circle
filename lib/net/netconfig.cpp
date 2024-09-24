@@ -3,7 +3,7 @@
 //
 // Circle - A C++ bare metal environment for Raspberry Pi
 // Copyright (C) 2015-2016  R. Stange <rsta2@o2online.de>
-// 
+//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -20,13 +20,25 @@
 #include <circle/net/netconfig.h>
 
 CNetConfig::CNetConfig (void)
-:	m_bUseDHCP (TRUE)
+:	m_bUseDHCP (TRUE),
+	m_pMulticastGroups (0)
 {
 	Reset ();
 }
 
 CNetConfig::~CNetConfig (void)
 {
+	// Delete multicast groups
+	MulticastGroup *pGroup = m_pMulticastGroups;
+	while (pGroup != 0)
+	{
+		MulticastGroup *pNext = pGroup->pNext;
+		delete pGroup->pMACAddress;
+		delete pGroup->pIPAddress;
+		delete pGroup;
+		pGroup = pNext;
+	}
+
 }
 
 void CNetConfig::Reset (void)
@@ -122,6 +134,149 @@ const CIPAddress *CNetConfig::GetDNSServer (void) const
 const CIPAddress *CNetConfig::GetBroadcastAddress (void) const
 {
 	return &m_BroadcastAddress;
+}
+
+void CNetConfig::EnableMulticastGroup (const CIPAddress &rIPAddress) {
+
+	// Check if the address is a multicast address
+	if (!rIPAddress.IsMulticast ())
+	{
+		return;
+	}
+
+	// Create the MAC address from the IP address
+	u8 TempMACAddress[MAC_ADDRESS_SIZE];
+	rIPAddress.CopyTo (TempMACAddress + 2);
+
+	TempMACAddress[0] = 0x01;
+	TempMACAddress[1] = 0x00;
+	TempMACAddress[2] = 0x5E;
+
+
+	// Check if the address is already in the list
+	MulticastGroup *pGroup = m_pMulticastGroups;
+	while (pGroup != 0)
+	{
+		if (*pGroup->pMACAddress == TempMACAddress)
+		{
+			return;
+		}
+
+		pGroup = pGroup->pNext;
+	}
+
+	// Create a new multicast group
+	MulticastGroup *pNewGroup = new MulticastGroup;
+	assert (pNewGroup != 0);
+
+	// Set the next pointer to 0
+	pNewGroup->pNext = 0;
+
+	// Allocate the MAC address
+	pNewGroup->pMACAddress = new CMACAddress;
+	assert (pNewGroup->pMACAddress != 0);
+
+	// Allocate the IP address
+	pNewGroup->pIPAddress = new CIPAddress;
+	assert (pNewGroup->pIPAddress != 0);
+
+	// Copy the MAC address
+	pNewGroup->pMACAddress->Set (TempMACAddress);
+
+	// Copy the IP address
+	pNewGroup->pIPAddress->Set (rIPAddress);
+
+
+	// Get a pointer to the last multicast group
+	MulticastGroup *pLastGroup = m_pMulticastGroups;
+	while (pLastGroup != 0)
+	{
+		if (pLastGroup->pNext == 0)
+		{
+			break;
+		}
+		pLastGroup = pLastGroup->pNext;
+	}
+
+	// Add the new group to the list
+	if (pLastGroup == 0)
+	{
+		m_pMulticastGroups = pNewGroup;
+	}
+	else
+	{
+		pLastGroup->pNext = pNewGroup;
+	}
+}
+
+void CNetConfig::DisableMulticastGroup (const CIPAddress &rIPAddress) {
+
+		// Check if the address is a multicast address
+	if (!rIPAddress.IsMulticast ())
+	{
+		return;
+	}
+
+	// Create the MAC address from the IP address
+	u8 TempMACAddress[MAC_ADDRESS_SIZE];
+	rIPAddress.CopyTo (TempMACAddress + 2);
+
+	TempMACAddress[0] = 0x01;
+	TempMACAddress[1] = 0x00;
+	TempMACAddress[2] = 0x5E;
+
+	// Move through the list and remove the address
+	MulticastGroup *pGroup = m_pMulticastGroups;
+	while (pGroup != 0)
+	{
+		MulticastGroup *pPrev = pGroup;
+		MulticastGroup *pNext = pGroup->pNext;
+
+		if (*pGroup->pMACAddress == TempMACAddress)
+		{
+			// Remove the address from the list
+			pPrev->pNext = pNext;
+
+			// Delete the address
+			delete pGroup->pMACAddress;
+			delete pGroup->pIPAddress;
+			delete pGroup;
+
+			break;
+		}
+
+		pGroup = pNext;
+	}
+}
+
+boolean CNetConfig::IsEnabledMulticastGroup (const CIPAddress &rIPAddress) {
+	// Move through the list and check if the address is in the list
+	MulticastGroup *pGroup = m_pMulticastGroups;
+	while (pGroup != 0)
+	{
+		if (*pGroup->pIPAddress == rIPAddress)
+		{
+			return TRUE;
+		}
+		pGroup = pGroup->pNext;
+	}
+
+	return FALSE;
+}
+
+boolean CNetConfig::IsEnabledMulticastMAC (const CMACAddress &rMACAddress) {
+	// Move through the list and check if the address is in the list
+	MulticastGroup *pGroup = m_pMulticastGroups;
+	while (pGroup != 0)
+	{
+		if (*pGroup->pMACAddress == rMACAddress)
+		{
+			return TRUE;
+		}
+		pGroup = pGroup->pNext;
+	}
+
+	return FALSE;
 }
 
 void CNetConfig::UpdateBroadcastAddress (void)

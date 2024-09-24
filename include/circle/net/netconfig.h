@@ -3,7 +3,7 @@
 //
 // Circle - A C++ bare metal environment for Raspberry Pi
 // Copyright (C) 2015-2016  R. Stange <rsta2@o2online.de>
-// 
+//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -21,7 +21,16 @@
 #define _circle_net_netconfig_h
 
 #include <circle/net/ipaddress.h>
+#include <circle/macaddress.h>
 #include <circle/types.h>
+
+struct MulticastGroup
+{
+	CMACAddress *pMACAddress;
+	CIPAddress *pIPAddress;
+	MulticastGroup *pNext;
+};
+
 
 class CNetConfig
 {
@@ -51,6 +60,12 @@ public:
 	const CIPAddress *GetDNSServer (void) const;
 	const CIPAddress *GetBroadcastAddress (void) const;		// directed broadcast
 
+	// Multicast group management
+	void EnableMulticastGroup (const CIPAddress &rIPAddress);	// Register a multicast group
+	void DisableMulticastGroup (const CIPAddress &rIPAddress);	// Unregister a multicast group
+	boolean IsEnabledMulticastGroup (const CIPAddress &rIPAddress); // check if a multicast group is an enabled
+	boolean IsEnabledMulticastMAC (const CMACAddress &rMACAddress); // check if a mac address is an enabled multicast group address
+
 private:
 	void UpdateBroadcastAddress (void);
 
@@ -62,6 +77,9 @@ private:
 	CIPAddress m_DefaultGateway;
 	CIPAddress m_DNSServer;
 	CIPAddress m_BroadcastAddress;
+
+	// Multicast
+	MulticastGroup *m_pMulticastGroups;
 };
 
 #endif

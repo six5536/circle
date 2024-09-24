@@ -32,7 +32,8 @@ typedef ether_event_handler_t TBcm4343EventHandler;
 class CBcm4343Device : public CNetDevice	/// Driver for BCM4343x WLAN device
 {
 public:
-	CBcm4343Device (const char *pFirmwarePath);		// e.g. "USB:/firmware/"
+	// e.g. pFirmwarePath = "USB:/firmware/"
+	CBcm4343Device (const char *pFirmwarePath, boolean allmulti = false, boolean promisc = false);
 	~CBcm4343Device (void);
 
 	TNetDeviceType GetType (void)	{ return NetDeviceTypeWLAN; }
@@ -85,6 +86,9 @@ public:
 
 private:
 	CString m_FirmwarePath;
+
+	boolean m_allmulti;
+	boolean m_promisc;
 
 	CMACAddress m_MACAddress;
 	CMACAddress m_BSSID;

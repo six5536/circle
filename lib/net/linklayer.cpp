@@ -21,6 +21,9 @@
 #include <circle/net/networklayer.h>
 #include <circle/util.h>
 #include <assert.h>
+#include <circle/logger.h>
+
+static const char FromLinkLayer[] = "linklayer";
 
 struct TRawPrivateData
 {
@@ -86,8 +89,27 @@ void CLinkLayer::Process (void)
 		TEthernetHeader *pHeader = (TEthernetHeader *) Buffer;
 
 		CMACAddress MACAddressReceiver (pHeader->MACReceiver);
+		CMACAddress MACAddressSender (pHeader->MACSender);
+
+// HACK
+		CString MACString;
+		MACAddressReceiver.Format (&MACString);
+		// CLogger::Get ()->Write (FromLinkLayer, LogDebug, "Message from ");
+
+		// MACAddressSender.Format (&MACString);
+		// CLogger::Get ()->Write (FromLinkLayer, LogDebug, MACString);
+
+
+
+		if (m_pNetConfig->IsEnabledMulticastMAC (MACAddressReceiver)) {
+			CLogger::Get ()->Write (FromLinkLayer, LogDebug, "Multicast!!!!");
+			CLogger::Get ()->Write (FromLinkLayer, LogDebug, MACString);
+		}
+		// END HACK
+
 		if (    MACAddressReceiver != *pOwnMACAddress
-		    && !MACAddressReceiver.IsBroadcast ())
+		    && !MACAddressReceiver.IsBroadcast ()
+				&& !m_pNetConfig->IsEnabledMulticastMAC (MACAddressReceiver))
 		{
 			continue;
 		}
@@ -244,3 +266,4 @@ void CLinkLayer::ResolveFailed (const void *pReturnedFrame, unsigned nLength)
 				     (const u8 *) pReturnedFrame + sizeof (TEthernetHeader),
 				     nLength - sizeof (TEthernetHeader));
 }
+

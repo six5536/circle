@@ -3,7 +3,7 @@
 //
 // Circle - A C++ bare metal environment for Raspberry Pi
 // Copyright (C) 2014-2019  R. Stange <rsta2@o2online.de>
-// 
+//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -34,17 +34,18 @@ public:
 
 	boolean operator== (const CMACAddress &rAddress2) const;
 	boolean operator!= (const CMACAddress &rAddress2) const;
-	
+
 	void Set (const u8 *pAddress);
 	void SetBroadcast (void);
 	const u8 *Get (void) const;
 	void CopyTo (u8 *pBuffer) const;
 
 	boolean IsBroadcast (void) const;
+	boolean IsMulticast (void) const;
 	unsigned GetSize (void) const;
 
 	void Format (CString *pString) const;
-	
+
 private:
 	boolean m_bValid;
 
