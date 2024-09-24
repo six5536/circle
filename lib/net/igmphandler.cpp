@@ -44,7 +44,7 @@ CIGMPHandler::CIGMPHandler (CNetConfig *pNetConfig, CNetworkLayer *pNetworkLayer
 			    CNetQueue *pRxQueue)
 :	m_pNetConfig (pNetConfig),
 	m_pNetworkLayer (pNetworkLayer),
-	m_pRxQueue (pRxQueue),
+	m_pRxQueue (pRxQueue)
 {
 	assert (m_pNetConfig != 0);
 	assert (m_pNetworkLayer != 0);
