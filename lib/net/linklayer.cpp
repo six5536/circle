@@ -89,23 +89,6 @@ void CLinkLayer::Process (void)
 		TEthernetHeader *pHeader = (TEthernetHeader *) Buffer;
 
 		CMACAddress MACAddressReceiver (pHeader->MACReceiver);
-		CMACAddress MACAddressSender (pHeader->MACSender);
-
-// HACK
-		CString MACString;
-		MACAddressReceiver.Format (&MACString);
-		// CLogger::Get ()->Write (FromLinkLayer, LogDebug, "Message from ");
-
-		// MACAddressSender.Format (&MACString);
-		// CLogger::Get ()->Write (FromLinkLayer, LogDebug, MACString);
-
-
-
-		if (m_pNetConfig->IsEnabledMulticastMAC (MACAddressReceiver)) {
-			CLogger::Get ()->Write (FromLinkLayer, LogDebug, "Multicast!!!!");
-			CLogger::Get ()->Write (FromLinkLayer, LogDebug, MACString);
-		}
-		// END HACK
 
 		if (    MACAddressReceiver != *pOwnMACAddress
 		    && !MACAddressReceiver.IsBroadcast ()

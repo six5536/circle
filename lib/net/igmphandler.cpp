@@ -33,7 +33,7 @@
 #include <assert.h>
 
 #define INITIAL_REPORT_COUNT 2
-#define MAX_INITIAL_REPORT_DELAY_MS	5000	//  5s
+#define MAX_INITIAL_REPORT_DELAY_MS	1000	//  1s
 
 
 // CLogger::Get ()->Write (FromIGMP, LogDebug, "Time %u", nTimestampMs);

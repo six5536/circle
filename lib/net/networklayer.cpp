@@ -23,6 +23,7 @@
 #include <circle/util.h>
 #include <assert.h>
 
+
 CNetworkLayer::CNetworkLayer (CNetConfig *pNetConfig, CLinkLayer *pLinkLayer)
 :	m_pNetConfig (pNetConfig),
 	m_pLinkLayer (pLinkLayer),
@@ -94,9 +95,12 @@ void CNetworkLayer::Process (void)
 		}
 
 		CIPAddress IPAddressDestination (pHeader->DestinationAddress);
+
+
 		if (!pOwnIPAddress->IsNull ())
 		{
 			if (   *pOwnIPAddress != IPAddressDestination
+					&& !m_pNetConfig->IsEnabledMulticastGroup (IPAddressDestination)
 			    && !IPAddressDestination.IsBroadcast ()
 			    && *m_pNetConfig->GetBroadcastAddress () != IPAddressDestination)
 			{
@@ -105,7 +109,8 @@ void CNetworkLayer::Process (void)
 		}
 		else
 		{
-			if (!IPAddressDestination.IsBroadcast ())
+			if (   !IPAddressDestination.IsBroadcast ()
+			    && !m_pNetConfig->IsEnabledMulticastGroup (IPAddressDestination))
 			{
 				continue;
 			}
