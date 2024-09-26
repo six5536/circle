@@ -30,6 +30,8 @@ CNetConfig::~CNetConfig (void)
 {
 	// Delete multicast groups
 	MulticastGroup *pGroup = m_pMulticastGroups;
+	m_pMulticastGroups = 0; // Ensure no further access to the list
+
 	while (pGroup != 0)
 	{
 		MulticastGroup *pNext = pGroup->pNext;
@@ -198,7 +200,7 @@ void CNetConfig::EnableMulticastGroup (const CIPAddress &rIPAddress) {
 		pLastGroup = pLastGroup->pNext;
 	}
 
-	// Add the new group to the list
+	// Add the new group to the list (the assignment is atomic, so items can be added without a task level lock)
 	if (pLastGroup == 0)
 	{
 		m_pMulticastGroups = pNewGroup;
@@ -227,17 +229,24 @@ void CNetConfig::DisableMulticastGroup (const CIPAddress &rIPAddress) {
 
 	// Move through the list and remove the address
 	MulticastGroup *pGroup = m_pMulticastGroups;
+	MulticastGroup *pPrev = 0;
 	while (pGroup != 0)
 	{
-		MulticastGroup *pPrev = pGroup;
 		MulticastGroup *pNext = pGroup->pNext;
 
 		if (*pGroup->pMACAddress == TempMACAddress)
 		{
-			// Remove the address from the list
-			pPrev->pNext = pNext;
+			// Remove the address from the list (the assignment is atomic, so items can be removed without a task level lock)
+			if (pPrev == 0)
+			{
+				m_pMulticastGroups = pNext;
+			}
+			else
+			{
+				pPrev->pNext = pNext;
+			}
 
-			// Delete the address
+			// Delete the group
 			delete pGroup->pMACAddress;
 			delete pGroup->pIPAddress;
 			delete pGroup;
@@ -245,8 +254,14 @@ void CNetConfig::DisableMulticastGroup (const CIPAddress &rIPAddress) {
 			break;
 		}
 
+		pPrev = pGroup;
 		pGroup = pNext;
 	}
+}
+
+const MulticastGroup *CNetConfig::GetMulticastGroups (void) const
+{
+	return m_pMulticastGroups;
 }
 
 boolean CNetConfig::IsEnabledMulticastGroup (const CIPAddress &rIPAddress) {

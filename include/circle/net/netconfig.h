@@ -63,6 +63,7 @@ public:
 	// Multicast group management
 	void EnableMulticastGroup (const CIPAddress &rIPAddress);	// Register a multicast group
 	void DisableMulticastGroup (const CIPAddress &rIPAddress);	// Unregister a multicast group
+	const MulticastGroup *GetMulticastGroups (void) const;			// Get the list of multicast groups
 	boolean IsEnabledMulticastGroup (const CIPAddress &rIPAddress); // check if a multicast group is an enabled
 	boolean IsEnabledMulticastMAC (const CMACAddress &rMACAddress); // check if a mac address is an enabled multicast group address
 
