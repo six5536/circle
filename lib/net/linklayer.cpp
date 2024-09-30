@@ -21,6 +21,9 @@
 #include <circle/net/networklayer.h>
 #include <circle/util.h>
 #include <assert.h>
+#include <circle/logger.h>
+
+static const char FromLinkLayer[] = "linklayer";
 
 struct TRawPrivateData
 {
@@ -86,8 +89,10 @@ void CLinkLayer::Process (void)
 		TEthernetHeader *pHeader = (TEthernetHeader *) Buffer;
 
 		CMACAddress MACAddressReceiver (pHeader->MACReceiver);
+
 		if (    MACAddressReceiver != *pOwnMACAddress
-		    && !MACAddressReceiver.IsBroadcast ())
+		    && !MACAddressReceiver.IsBroadcast ()
+				&& !m_pNetConfig->IsEnabledMulticastMAC (MACAddressReceiver))
 		{
 			continue;
 		}
@@ -244,3 +249,4 @@ void CLinkLayer::ResolveFailed (const void *pReturnedFrame, unsigned nLength)
 				     (const u8 *) pReturnedFrame + sizeof (TEthernetHeader),
 				     nLength - sizeof (TEthernetHeader));
 }
+

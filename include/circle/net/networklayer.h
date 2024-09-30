@@ -25,6 +25,7 @@
 #include <circle/net/netqueue.h>
 #include <circle/net/ipaddress.h>
 #include <circle/net/icmphandler.h>
+#include <circle/net/igmphandler.h>
 #include <circle/net/routecache.h>
 #include <circle/macros.h>
 #include <circle/types.h>
@@ -75,6 +76,7 @@ public:
 	void Process (void);
 
 	boolean Send (const CIPAddress &rReceiver, const void *pPacket, unsigned nLength, int nProtocol);
+	boolean SendWithOptions (const CIPAddress &rReceiver, const void *pPacket, unsigned nLength, int nProtocol);
 
 	// pBuffer must have size FRAME_BUFFER_SIZE
 	boolean Receive (void *pBuffer, unsigned *pResultLength,
@@ -98,10 +100,12 @@ private:
 	CNetConfig   *m_pNetConfig;
 	CLinkLayer   *m_pLinkLayer;
 	CICMPHandler *m_pICMPHandler;
+	CIGMPHandler *m_pIGMPHandler;
 
 	CNetQueue m_RxQueue;
 	CNetQueue m_ICMPRxQueue;
 	CNetQueue m_ICMPNotificationQueue;
+	CNetQueue m_IGMPRxQueue;
 
 	CRouteCache m_RouteCache;
 };

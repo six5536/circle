@@ -23,10 +23,12 @@
 #include <circle/util.h>
 #include <assert.h>
 
+
 CNetworkLayer::CNetworkLayer (CNetConfig *pNetConfig, CLinkLayer *pLinkLayer)
 :	m_pNetConfig (pNetConfig),
 	m_pLinkLayer (pLinkLayer),
-	m_pICMPHandler (0)
+	m_pICMPHandler (0),
+	m_pIGMPHandler (0)
 {
 	assert (m_pNetConfig != 0);
 	assert (m_pLinkLayer != 0);
@@ -34,6 +36,9 @@ CNetworkLayer::CNetworkLayer (CNetConfig *pNetConfig, CLinkLayer *pLinkLayer)
 
 CNetworkLayer::~CNetworkLayer (void)
 {
+	delete m_pIGMPHandler;
+	m_pIGMPHandler = 0;
+
 	delete m_pICMPHandler;
 	m_pICMPHandler = 0;
 
@@ -46,6 +51,10 @@ boolean CNetworkLayer::Initialize (void)
 	assert (m_pICMPHandler == 0);
 	m_pICMPHandler = new CICMPHandler (m_pNetConfig, this, &m_ICMPRxQueue, &m_ICMPNotificationQueue);
 	assert (m_pICMPHandler != 0);
+
+	assert (m_pIGMPHandler == 0);
+	m_pIGMPHandler = new CIGMPHandler (m_pNetConfig, this, &m_IGMPRxQueue);
+	assert (m_pIGMPHandler != 0);
 
 	return TRUE;
 }
@@ -86,9 +95,12 @@ void CNetworkLayer::Process (void)
 		}
 
 		CIPAddress IPAddressDestination (pHeader->DestinationAddress);
+
+
 		if (!pOwnIPAddress->IsNull ())
 		{
 			if (   *pOwnIPAddress != IPAddressDestination
+					&& !m_pNetConfig->IsEnabledMulticastGroup (IPAddressDestination)
 			    && !IPAddressDestination.IsBroadcast ()
 			    && *m_pNetConfig->GetBroadcastAddress () != IPAddressDestination)
 			{
@@ -97,7 +109,8 @@ void CNetworkLayer::Process (void)
 		}
 		else
 		{
-			if (!IPAddressDestination.IsBroadcast ())
+			if (   !IPAddressDestination.IsBroadcast ()
+			    && !m_pNetConfig->IsEnabledMulticastGroup (IPAddressDestination))
 			{
 				continue;
 			}
@@ -129,6 +142,10 @@ void CNetworkLayer::Process (void)
 		{
 			m_ICMPRxQueue.Enqueue (Buffer+nHeaderLength, nResultLength, pParam);
 		}
+		else if (pHeader->nProtocol == IPPROTO_IGMP)
+		{
+			m_IGMPRxQueue.Enqueue (Buffer+nHeaderLength, nResultLength, pParam);
+		}
 		else
 		{
 			m_RxQueue.Enqueue (Buffer+nHeaderLength, nResultLength, pParam);
@@ -137,6 +154,9 @@ void CNetworkLayer::Process (void)
 
 	assert (m_pICMPHandler != 0);
 	m_pICMPHandler->Process ();
+
+	assert (m_pIGMPHandler != 0);
+	m_pIGMPHandler->Process ();
 }
 
 boolean CNetworkLayer::Send (const CIPAddress &rReceiver, const void *pPacket, unsigned nLength, int nProtocol)
@@ -173,6 +193,84 @@ boolean CNetworkLayer::Send (const CIPAddress &rReceiver, const void *pPacket, u
 	assert (pPacket != 0);
 	assert (nLength > 0);
 	memcpy (PacketBuffer+sizeof (TIPHeader), pPacket, nLength);
+
+	if (   pOwnIPAddress->IsNull ()
+	    && !rReceiver.IsBroadcast ())
+	{
+		SendFailed (ICMP_CODE_DEST_NET_UNREACH, PacketBuffer, nPacketLength);
+
+		return FALSE;
+	}
+
+	CIPAddress GatewayIP;
+	const CIPAddress *pNextHop = &rReceiver;
+	if (   !rReceiver.IsMulticast ()
+	    && !pOwnIPAddress->OnSameNetwork (rReceiver, m_pNetConfig->GetNetMask ()))
+	{
+		const u8 *pGateway = m_RouteCache.GetRoute (rReceiver.Get ());
+		if (pGateway != 0)
+		{
+			GatewayIP.Set (pGateway);
+
+			pNextHop = &GatewayIP;
+		}
+		else
+		{
+			pNextHop = m_pNetConfig->GetDefaultGateway ();
+			if (pNextHop->IsNull ())
+			{
+				SendFailed (ICMP_CODE_DEST_NET_UNREACH, PacketBuffer, nPacketLength);
+
+				return FALSE;
+			}
+		}
+	}
+
+	assert (m_pLinkLayer != 0);
+	assert (pNextHop != 0);
+	return m_pLinkLayer->Send (*pNextHop, PacketBuffer, nPacketLength);
+}
+
+boolean CNetworkLayer::SendWithOptions (const CIPAddress &rReceiver, const void *pPacket, unsigned nLength, int nProtocol)
+{
+	u8 options[4] = { 0x94, 0x04, 0x00, 0x00 };
+
+	unsigned nPacketLength = sizeof (TIPHeader) + sizeof (options) + nLength;		// may wrap
+	if (   nPacketLength <= sizeof (TIPHeader)
+	    || nPacketLength > FRAME_BUFFER_SIZE)
+	{
+		return FALSE;
+	}
+
+	u8 PacketBuffer[nPacketLength];
+	TIPHeader *pHeader = (TIPHeader *) PacketBuffer;
+
+	pHeader->nVersionIHL          = IP_VERSION << 4 | 6; // IP_HEADER_LENGTH_DWORD_MIN;
+	pHeader->nTypeOfService       = IP_TOS_ROUTINE;
+	pHeader->nTotalLength         = le2be16 ((u16) nPacketLength);
+	pHeader->nIdentification      = BE (IP_IDENTIFICATION_DEFAULT);
+	pHeader->nFlagsFragmentOffset = IP_FLAGS_DF | BE (IP_FRAGMENT_OFFSET_FIRST);
+	pHeader->nTTL                 = rReceiver.IsMulticast () ? IP_TTL_MULTICAST : IP_TTL_DEFAULT;
+	pHeader->nProtocol            = (u8) nProtocol;
+
+	assert (m_pNetConfig != 0);
+	const CIPAddress *pOwnIPAddress = m_pNetConfig->GetIPAddress ();
+	assert (pOwnIPAddress != 0);
+
+	pOwnIPAddress->CopyTo (pHeader->SourceAddress);
+
+	rReceiver.CopyTo (pHeader->DestinationAddress);
+
+
+	// NOTE: The checksum is calculated over the IP header only, not the options
+	pHeader->nHeaderChecksum = 0;
+	pHeader->nHeaderChecksum = CChecksumCalculator::SimpleCalculate (pHeader, sizeof (TIPHeader));
+
+	memcpy (PacketBuffer+sizeof (TIPHeader), options, sizeof (options));
+
+	assert (pPacket != 0);
+	assert (nLength > 0);
+	memcpy (PacketBuffer+sizeof (TIPHeader) + sizeof (options), pPacket, nLength);
 
 	if (   pOwnIPAddress->IsNull ()
 	    && !rReceiver.IsBroadcast ())

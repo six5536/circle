@@ -3,7 +3,7 @@
 //
 // Circle - A C++ bare metal environment for Raspberry Pi
 // Copyright (C) 2015-2020  R. Stange <rsta2@o2online.de>
-// 
+//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -42,7 +42,7 @@ public:
 		       const char *pHostname	 = DEFAULT_HOSTNAME,	// 0 for no hostname
 		       TNetDeviceType DeviceType = NetDeviceTypeEthernet);
 	~CNetSubSystem (void);
-	
+
 	boolean Initialize (boolean bWaitForActivate = TRUE);
 
 	void Process (void);
@@ -51,6 +51,7 @@ public:
 	CNetDeviceLayer *GetNetDeviceLayer (void);
 	CLinkLayer *GetLinkLayer (void);
 	CTransportLayer *GetTransportLayer (void);
+	CNetworkLayer *GetNetworkLayer (void);
 
 	boolean IsRunning (void) const;			// is DHCP bound if used?
 

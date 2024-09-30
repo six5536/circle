@@ -33,8 +33,10 @@ static Ether s_EtherDevice;
 
 CBcm4343Device *CBcm4343Device::s_pThis = 0;
 
-CBcm4343Device::CBcm4343Device (const char *pFirmwarePath)
-:	m_FirmwarePath (pFirmwarePath)
+CBcm4343Device::CBcm4343Device (const char *pFirmwarePath, boolean allmulti, boolean promisc)
+:	m_FirmwarePath (pFirmwarePath),
+  m_allmulti (allmulti),
+	m_promisc (promisc)
 {
 	s_pThis = this;
 }
@@ -71,6 +73,9 @@ boolean CBcm4343Device::Initialize (void)
 	(*s_EtherDevice.attach) (&s_EtherDevice);
 
 	m_MACAddress.Set (s_EtherDevice.ea);
+
+	SetMulticast (0, m_allmulti);
+	SetPromiscuous (m_promisc);
 
 	AddNetDevice ();
 
@@ -199,6 +204,18 @@ boolean CBcm4343Device::CreateOpenNet (const char *pSSID, int nChannel, bool bHi
 {
 	assert (pSSID != 0);
 	return Control ("create %s %d %d", pSSID, nChannel, bHidden);
+}
+
+void CBcm4343Device::SetMulticast (const u8 *pIpGroupAddr, boolean bEnable)
+{
+	assert (s_EtherDevice.multicast != 0);
+	(*s_EtherDevice.multicast) (&s_EtherDevice, (uchar *)pIpGroupAddr, bEnable ? 1 : 0);
+}
+
+void CBcm4343Device::SetPromiscuous (boolean bEnable)
+{
+	assert (s_EtherDevice.promiscuous != 0);
+	(*s_EtherDevice.promiscuous) (&s_EtherDevice, bEnable ? 1 : 0);
 }
 
 void CBcm4343Device::DumpStatus (void)
