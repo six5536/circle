@@ -358,6 +358,7 @@ int CUDPConnection::PacketReceived (const void *pPacket, unsigned nLength,
 		}
 
 		if (   m_ForeignIP != rSenderIP
+				&& !m_pNetConfig->IsEnabledMulticastGroup (m_ForeignIP)
 		    && !m_ForeignIP.IsBroadcast ()
 		    && m_ForeignIP != *m_pNetConfig->GetBroadcastAddress ())
 		{
