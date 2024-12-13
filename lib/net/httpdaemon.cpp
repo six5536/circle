@@ -579,7 +579,7 @@ THTTPStatus CHTTPDaemon::ParseHeaderField (char *pLine)
 		return HTTPBadRequest;
 	}
 
-	if (strcmp (pToken, "Content-Type") == 0)
+	if (strcasecmp (pToken, "Content-Type") == 0)
 	{
 		if ((pToken = strtok_r (0, " ;", &pSavePtr)) == 0)
 		{
@@ -590,14 +590,14 @@ THTTPStatus CHTTPDaemon::ParseHeaderField (char *pLine)
 		strncpy(m_ContentType, pToken, HTTP_MAX_CONTENT_TYPE);
 		m_ContentType[HTTP_MAX_CONTENT_TYPE] = '\0';
 
-		if (strcmp (pToken, "application/x-www-form-urlencoded") == 0)
+		if (strcasecmp (pToken, "application/x-www-form-urlencoded") == 0)
 		{
 			m_bRequestFormDataAvailable = TRUE;
 		}
-		else if (strcmp (pToken, "multipart/form-data") == 0)
+		else if (strcasecmp (pToken, "multipart/form-data") == 0)
 		{
 			if (   (pToken = strtok_r (0, " =", &pSavePtr)) == 0
-			    || strcmp (pToken, "boundary") != 0
+			    || strcasecmp (pToken, "boundary") != 0
 			    || (pToken = strtok_r (0, ";", &pSavePtr)) == 0
 			    || strlen (pToken) > HTTP_MAX_MULTIPART_BOUNDARY)
 			{
@@ -612,7 +612,7 @@ THTTPStatus CHTTPDaemon::ParseHeaderField (char *pLine)
 			m_bRawRequestDataAvailable = TRUE;
 		}
 	}
-	else if (strcmp (pToken, "Content-Length") == 0)
+	else if (strcasecmp (pToken, "Content-Length") == 0)
 	{
 		if ((pToken = strtok_r (0, " ", &pSavePtr)) == 0)
 		{
